@@ -1,0 +1,108 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+import pickle
+
+# Load dataset
+def load_data(file_path):
+    """Load medical dataset from a CSV file."""
+    try:
+        data = pd.read_csv(file_path)
+        return data
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return None
+
+# Preprocess data
+def preprocess_data(data):
+    """Preprocess the dataset: handle missing values and encode categorical data."""
+    # Handle missing values
+    data.fillna(data.median(numeric_only=True), inplace=True)
+
+    # Encode categorical columns
+    for column in data.select_dtypes(include=['object']).columns:
+        data[column] = pd.factorize(data[column])[0]
+
+    return data
+
+# Split dataset
+def split_data(data, target_column, test_size=0.2):
+    """Split the data into train and test sets."""
+    X = data.drop(columns=[target_column])
+    y = data[target_column]
+    return train_test_split(X, y, test_size=test_size, random_state=42)
+
+# Train model
+def train_model(X_train, y_train):
+    """Train a Random Forest Classifier."""
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X_train, y_train)
+    return model
+
+# Evaluate model
+def evaluate_model(model, X_test, y_test):
+    """Evaluate the model and print metrics."""
+    predictions = model.predict(X_test)
+    accuracy = accuracy_score(y_test, predictions)
+    print("Accuracy:", accuracy)
+    print("Classification Report:\n", classification_report(y_test, predictions))
+    return accuracy
+
+# Save model
+def save_model(model, file_name):
+    """Save the trained model as a pickle file."""
+    with open(file_name, 'wb') as file:
+        pickle.dump(model, file)
+
+# Load model
+def load_model(file_name):
+    """Load a saved model from a pickle file."""
+    with open(file_name, 'rb') as file:
+        return pickle.load(file)
+
+# Predict disease
+def predict_disease(model, input_data):
+    """Predict the disease based on input symptoms."""
+    prediction = model.predict([input_data])
+    return prediction[0]
+
+if __name__ == "__main__":
+    # Path to dataset
+    file_path = "medical_data.csv"  # Replace with your dataset path
+    target_column = "Disease"  # Replace with your target column name
+
+    # Step 1: Load the dataset
+    data = load_data(file_path)
+    if data is None:
+        exit()
+
+    print("Dataset loaded successfully.")
+
+    # Step 2: Preprocess the data
+    data = preprocess_data(data)
+    print("Data preprocessing completed.")
+
+    # Step 3: Split the data
+    X_train, X_test, y_train, y_test = split_data(data, target_column)
+    print("Data split into training and testing sets.")
+
+    # Step 4: Train the model
+    model = train_model(X_train, y_train)
+    print("Model training completed.")
+
+    # Step 5: Evaluate the model
+    evaluate_model(model, X_test, y_test)
+
+    # Step 6: Save the trained model
+    model_file = "disease_diagnosis_model.pkl"
+    save_model(model, model_file)
+    print(f"Model saved as {model_file}.")
+
+    # Optional: Predict a single input (example)
+    # Replace with actual feature values
+    example_input = np.array([1, 0, 25, 70, 1])  # Example values
+    loaded_model = load_model(model_file)
+    prediction = predict_disease(loaded_model, example_input)
+    print("Predicted Disease:", prediction)
